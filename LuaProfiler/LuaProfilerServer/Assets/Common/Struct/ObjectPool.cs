@@ -26,77 +26,93 @@
 __________#_______####_______####______________
                 我们的未来没有BUG                
 * ==============================================================================
-* Filename: NetWorkClient
+* Filename: ObjectPool
 * Created:  2018/7/13 14:29:22
 * Author:   エル・プサイ・コングリィ
 * Purpose:  
 * ==============================================================================
 */
 
+/*
+ * 对象池
+ */
+#if UNITY_EDITOR_WIN || USE_LUA_PROFILER
 using System;
-using EasyHook;
-using System.Threading;
-using System.Windows.Forms;
+using System.Collections.Generic;
 
 namespace MikuLuaProfiler
 {
-    [Serializable]
-    public class HookParameter
+    public class ObjectPool<T> where T : class, new()
     {
-        public string Msg { get; set; }
-        public int HostProcessId { get; set; }
-    }
+        public delegate T CreateFunc();
 
-    public class Main : IEntryPoint
-    {
-        #region field
-        public LocalHook MessageBoxWHook = null;
-        public LocalHook MessageBoxAHook = null;
-        public static int frameCount { private set; get; }
-        #endregion
-
-        public void Uninstall()
+        public ObjectPool()
         {
-            MessageBox.Show("fuck you");
-            NativeAPI.LhUninstallAllHooks();
+
         }
-
-        public Main(
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
+        public ObjectPool(int poolSize, CreateFunc createFunc = null, Action<T> resetAction = null)
         {
+            Init(poolSize, createFunc, resetAction);
         }
-
-        public void Run( 
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
+        public T GetObject()
         {
-            frameCount = 0;
-            try
+            lock (this)
             {
-                LuaDLL.Uninstall();
-                LuaDLL.HookLoadLibrary();
-                LuaDLL.BindEasyHook();
-                MessageBox.Show("success");
+                if (m_objStack.Count > 0)
+                {
+                    T t = m_objStack.Pop();
+                    return t;
+                }
             }
-            catch (Exception ex)
+            return new T();
+        }
+
+        public void Init(int poolSize, CreateFunc createFunc = null, Action<T> resetAction = null)
+        {
+            m_objStack = new Stack<T>(poolSize);
+            for (int i = 0; i < poolSize; i++)
             {
-                MessageBox.Show(ex.Message);
+                T item = new T();
+                m_objStack.Push(item);
+            }
+        }
+
+        public void Store(T obj)
+        {
+            if (obj == null)
                 return;
-            }
-
-            NetWorkClient.ConnectServer("127.0.0.1", 2333);
-            while (true)
+            lock (this)
             {
-                Thread.Sleep(100);
-                frameCount++;
+                m_objStack.Push(obj);
             }
-
         }
 
+        // 少用，调用这个池的作用就没有了
+        public void Clear()
+        {
+            if (m_objStack != null)
+                m_objStack.Clear();
+        }
+
+        public int Count
+        {
+            get
+            {
+                if (m_objStack == null)
+                    return 0;
+                return m_objStack.Count;
+            }
+        }
+
+        public Stack<T>.Enumerator GetIter()
+        {
+            if (m_objStack == null)
+                return new Stack<T>.Enumerator();
+            return m_objStack.GetEnumerator();
+        }
+
+        private Stack<T> m_objStack = null;
     }
+
 }
+#endif

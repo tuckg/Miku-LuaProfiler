@@ -26,77 +26,36 @@
 __________#_______####_______####______________
                 我们的未来没有BUG                
 * ==============================================================================
-* Filename: NetWorkClient
-* Created:  2018/7/13 14:29:22
+* Filename: Common
+* Created:  2018/7/2 11:36:16
 * Author:   エル・プサイ・コングリィ
 * Purpose:  
 * ==============================================================================
 */
 
-using System;
-using EasyHook;
-using System.Threading;
-using System.Windows.Forms;
-
+#if UNITY_EDITOR_WIN || USE_LUA_PROFILER
 namespace MikuLuaProfiler
 {
-    [Serializable]
-    public class HookParameter
+    public static class LuaConf
     {
-        public string Msg { get; set; }
-        public int HostProcessId { get; set; }
+        public const int LUAI_BITSINT = 32;
+
+#pragma warning disable 0429
+        public const int LUAI_MAXSTACK = (LUAI_BITSINT >= 32)
+            ? 1000000
+            : 15000
+            ;
+#pragma warning restore 0429
+
+        // reserve some space for error handling
+        public const int LUAI_FIRSTPSEUDOIDX = (-LUAI_MAXSTACK - 1000);
+
+        public const string LUA_SIGNATURE = "\u001bLua";
+        public static string LUA_DIRSEP
+        {
+            get { return System.IO.Path.DirectorySeparatorChar.ToString(); }
+        }
     }
 
-    public class Main : IEntryPoint
-    {
-        #region field
-        public LocalHook MessageBoxWHook = null;
-        public LocalHook MessageBoxAHook = null;
-        public static int frameCount { private set; get; }
-        #endregion
-
-        public void Uninstall()
-        {
-            MessageBox.Show("fuck you");
-            NativeAPI.LhUninstallAllHooks();
-        }
-
-        public Main(
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
-        {
-        }
-
-        public void Run( 
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
-        {
-            frameCount = 0;
-            try
-            {
-                LuaDLL.Uninstall();
-                LuaDLL.HookLoadLibrary();
-                LuaDLL.BindEasyHook();
-                MessageBox.Show("success");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-                return;
-            }
-
-            NetWorkClient.ConnectServer("127.0.0.1", 2333);
-            while (true)
-            {
-                Thread.Sleep(100);
-                frameCount++;
-            }
-
-        }
-
-    }
 }
+#endif

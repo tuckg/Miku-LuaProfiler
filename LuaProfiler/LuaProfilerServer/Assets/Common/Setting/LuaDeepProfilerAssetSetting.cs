@@ -26,77 +26,49 @@
 __________#_______####_______####______________
                 我们的未来没有BUG                
 * ==============================================================================
-* Filename: NetWorkClient
+* Filename: LuaDeepProfilerAssetSetting.cs
 * Created:  2018/7/13 14:29:22
 * Author:   エル・プサイ・コングリィ
 * Purpose:  
 * ==============================================================================
 */
 
-using System;
-using EasyHook;
-using System.Threading;
-using System.Windows.Forms;
+#if UNITY_EDITOR_WIN || USE_LUA_PROFILER
+using UnityEngine;
+using UnityEditor;
 
 namespace MikuLuaProfiler
 {
-    [Serializable]
-    public class HookParameter
+    public class LuaDeepProfilerAssetSetting : ScriptableObject
     {
-        public string Msg { get; set; }
-        public int HostProcessId { get; set; }
-    }
 
-    public class Main : IEntryPoint
-    {
-        #region field
-        public LocalHook MessageBoxWHook = null;
-        public LocalHook MessageBoxAHook = null;
-        public static int frameCount { private set; get; }
+        #region memeber
+        public bool isDeepMonoProfiler = false;
+        public bool isDeepLuaProfiler = false;
+        public bool isLocal = false;
+
+        private static LuaDeepProfilerAssetSetting instance;
+        public static LuaDeepProfilerAssetSetting Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = AssetDatabase.LoadAssetAtPath<LuaDeepProfilerAssetSetting>("Assets/LuaDeepProfilerAssetSetting.asset");
+                    if (instance == null)
+                    {
+                        instance = CreateInstance<LuaDeepProfilerAssetSetting>();
+                        instance.name = "Lua Profiler Integration Settings";
+#if UNITY_EDITOR
+                        AssetDatabase.CreateAsset(instance, "Assets/LuaDeepProfilerAssetSetting.asset");
+#endif
+                    }
+                }
+                return instance;
+            }
+        }
         #endregion
-
-        public void Uninstall()
-        {
-            MessageBox.Show("fuck you");
-            NativeAPI.LhUninstallAllHooks();
-        }
-
-        public Main(
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
-        {
-        }
-
-        public void Run( 
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
-        {
-            frameCount = 0;
-            try
-            {
-                LuaDLL.Uninstall();
-                LuaDLL.HookLoadLibrary();
-                LuaDLL.BindEasyHook();
-                MessageBox.Show("success");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-                return;
-            }
-
-            NetWorkClient.ConnectServer("127.0.0.1", 2333);
-            while (true)
-            {
-                Thread.Sleep(100);
-                frameCount++;
-            }
-
-        }
 
     }
 }
+#endif

@@ -157,18 +157,30 @@ namespace MikuHook
             if (_proxyPtr == null)
                 return;
 
-            fixed (byte* p = &s_jmpBuff[s_addrOffset])
+            if (NativeAPI.IsAndroidARM())
             {
-                if (IntPtr.Size == 8)
+                int offset = (int)(((long)_targetPtr - (long)_proxyPtr - 8) / 4);
+                byte[] offset_bytes = BitConverter.GetBytes(offset);
+                for (int i = 0; i < 3; i++)
                 {
-                    ulong* ptr = (ulong*)p;
-                    *ptr = (ulong)_targetPtr + (ulong)_headSize;
+                    s_jmpBuff[i] = offset_bytes[i];
                 }
-                else
+            }
+            else
+            {
+                fixed (byte* p = &s_jmpBuff[s_addrOffset])
                 {
-                    uint* ptr = (uint*)p;
-                    // cal offset
-                    *ptr = (uint)_targetPtr + (uint)_headSize;
+                    if (IntPtr.Size == 8)
+                    {
+                        ulong* ptr = (ulong*)p;
+                        *ptr = (ulong)_targetPtr + (ulong)_headSize;
+                    }
+                    else
+                    {
+                        uint* ptr = (uint*)p;
+                        // cal offset
+                        *ptr = (uint)_targetPtr + (uint)_headSize;
+                    }
                 }
             }
 

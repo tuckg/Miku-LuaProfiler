@@ -190,6 +190,7 @@ If you find any bug or have any suggests join the QQ group：[882425563](https:/
 [部署和安装](#installe_zh)</br>
 [使用教程](#turtor_zh)</br>
 [数据说明](#data_zh)</br>
+[数据报表导出](#data_export_zh)</br>
 [记录模式](#record_zh)</br>
 [DIFF 两个不同时期的Lua变量](#diff_zh)</br>
 [自定义Profiler点](#custom_zh)</br>

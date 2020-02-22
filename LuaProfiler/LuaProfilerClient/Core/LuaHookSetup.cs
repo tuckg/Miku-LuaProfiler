@@ -302,12 +302,12 @@ namespace MikuLuaProfiler
 
         #region check
         public static int historyRef = -100;
-        public static void Record()
+        public static LuaDiffInfo Record()
         {
             IntPtr L = LuaProfiler.mainL;
             if (L == IntPtr.Zero)
             {
-                return;
+                return null;
             }
             isHook = false;
 
@@ -333,7 +333,8 @@ namespace MikuLuaProfiler
             LuaDLL.lua_pushnil(L);
             //null_list
             LuaDLL.lua_newtable(L);
-
+            LuaDLL.lua_pushvalue(L, -1);
+            int nullObjectRef = LuaDLL.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
             if (LuaDLL.lua_pcall(L, 6, 0, oldTop + 1) == 0)
             {
                 LuaDLL.lua_remove(L, oldTop + 1);
@@ -351,7 +352,7 @@ namespace MikuLuaProfiler
             //history
             LuaDLL.lua_pushnil(L);
             //null_list
-            LuaDLL.lua_newtable(L);
+            LuaDLL.lua_getref(L, nullObjectRef);
 
             if (LuaDLL.lua_pcall(L, 6, 0, oldTop + 1) == 0)
             {
@@ -359,7 +360,11 @@ namespace MikuLuaProfiler
             }
             LuaDLL.lua_settop(L, oldTop);
 
+            LuaDiffInfo ld = LuaDiffInfo.Create();
+            SetTable(nullObjectRef, ld.nullRef, ld.nullDetail);
+
             isHook = true;
+            return ld;
         }
         private static void ClearRecord()
         {

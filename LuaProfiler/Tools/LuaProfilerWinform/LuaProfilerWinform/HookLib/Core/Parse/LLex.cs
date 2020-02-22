@@ -32,7 +32,6 @@ __________#_______####_______####______________
 * Purpose:  
 * ==============================================================================
 */
-#if UNITY_EDITOR || USE_LUA_PROFILER
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -44,28 +43,28 @@ namespace MikuLuaProfiler
     {
         // reserved words
         AND = 257,
-        BREAK = 258,
-        CONTINUE = 259,
-        DO = 260,
-        ELSE = 261,
-        ELSEIF = 262,
-        END = 263,
-        FALSE = 264,
-        FOR = 265,
-        FUNCTION = 266,
-        GOTO = 267,
-        IF = 268,
-        IN = 269,
-        LOCAL = 270,
-        NIL = 271,
-        NOT = 272,
-        OR = 273,
-        REPEAT = 274,
-        RETURN = 275,
-        THEN = 276,
-        TRUE = 277,
-        UNTIL = 278,
-        WHILE = 279,
+        BREAK,
+        CONTINUE,
+        DO,
+        ELSE,
+        ELSEIF,
+        END,
+        FALSE,
+        FOR,
+        FUNCTION,
+        GOTO,
+        IF,
+        IN,
+        LOCAL,
+        NIL,
+        NOT,
+        OR,
+        REPEAT,
+        RETURN,
+        THEN,
+        TRUE,
+        UNTIL,
+        WHILE,
         // other terminal symbols
         CONCAT,
         DOTS,
@@ -991,5 +990,3 @@ namespace MikuLuaProfiler
     }
 
 }
-
-#endif

@@ -24,79 +24,54 @@
         ###       ###        ###               
          ##       ###        ###               
 __________#_______####_______####______________
-                我们的未来没有BUG                
+                我们的未来没有BUG              
 * ==============================================================================
-* Filename: NetWorkClient
+* Filename: SplitterState
 * Created:  2018/7/13 14:29:22
 * Author:   エル・プサイ・コングリィ
 * Purpose:  
 * ==============================================================================
 */
 
+#if UNITY_5_6_OR_NEWER && UNITY_EDITOR_WIN
 using System;
-using EasyHook;
-using System.Threading;
-using System.Windows.Forms;
+using System.Reflection;
+using UnityEditor;
 
 namespace MikuLuaProfiler
 {
-    [Serializable]
-    public class HookParameter
+    public class SplitterState
     {
-        public string Msg { get; set; }
-        public int HostProcessId { get; set; }
-    }
+        public int[] RelativeSizes = null;
 
-    public class Main : IEntryPoint
-    {
-        #region field
-        public LocalHook MessageBoxWHook = null;
-        public LocalHook MessageBoxAHook = null;
-        public static int frameCount { private set; get; }
-        #endregion
-
-        public void Uninstall()
+        public object InternalObject
         {
-            MessageBox.Show("fuck you");
-            NativeAPI.LhUninstallAllHooks();
+            get;
+            private set;
         }
 
-        public Main(
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
+        public static Type SplitterStateType
         {
+            get;
+            private set;
         }
 
-        public void Run( 
-            RemoteHooking.IContext context,
-            string channelName
-            , HookParameter parameter
-            )
+        static SplitterState()
         {
-            frameCount = 0;
-            try
-            {
-                LuaDLL.Uninstall();
-                LuaDLL.HookLoadLibrary();
-                LuaDLL.BindEasyHook();
-                MessageBox.Show("success");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-                return;
-            }
-
-            NetWorkClient.ConnectServer("127.0.0.1", 2333);
-            while (true)
-            {
-                Thread.Sleep(100);
-                frameCount++;
-            }
-
+            Assembly assembly = Assembly.GetAssembly(typeof(ActiveEditorTracker));
+            SplitterState.SplitterStateType = assembly.GetType("UnityEditor.SplitterState");
         }
 
+        public SplitterState(int[] relativeSizes, int[] minSizes, int[] maxSizes)
+        {
+            this.RelativeSizes = relativeSizes;
+            this.InternalObject = Activator.CreateInstance(SplitterState.SplitterStateType, new object[]
+                {
+                relativeSizes,
+                minSizes,
+                maxSizes
+                });
+        }
     }
 }
+#endif

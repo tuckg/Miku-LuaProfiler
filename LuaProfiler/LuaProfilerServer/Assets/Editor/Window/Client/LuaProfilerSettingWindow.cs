@@ -1,4 +1,40 @@
 ﻿/*
+               #########                       
+              ############                     
+              #############                    
+             ##  ###########                   
+            ###  ###### #####                  
+            ### #######   ####                 
+           ###  ########## ####                
+          ####  ########### ####               
+         ####   ###########  #####             
+        #####   ### ########   #####           
+       #####   ###   ########   ######         
+      ######   ###  ###########   ######       
+     ######   #### ##############  ######      
+    #######  #####################  ######     
+    #######  ######################  ######    
+   #######  ###### #################  ######   
+   #######  ###### ###### #########   ######   
+   #######    ##  ######   ######     ######   
+   #######        ######    #####     #####    
+    ######        #####     #####     ####     
+     #####        ####      #####     ###      
+      #####       ###        ###      #        
+        ###       ###        ###               
+         ##       ###        ###               
+__________#_______####_______####______________
+                我们的未来没有BUG              
+* ==============================================================================
+* Filename: LuaProfilerWindow
+* Created:  2018/7/13 14:29:22
+* Author:   エル・プサイ・コングリィ
+* Purpose:  
+* ==============================================================================
+*/
+
+#if !UNITY_5_6_OR_NEWER
+/*
 * ==============================================================================
 * Filename: LuaProfilerWindow
 * Created:  2018/7/13 14:29:22
@@ -11,19 +47,8 @@ using UnityEditor;
 
 namespace MikuLuaProfiler
 {
-    public class LuaProfilerWindowProfiler : EditorWindow
+    public class LuaProfilerSettingWindow : EditorWindow
     {
-#if (UNITY_5 || UNITY_2017_1_OR_NEWER)
-        private static LuaDiffScrollView m_luaDiffScrollView = null;
-        void OnEnable()
-        {
-            if (m_luaDiffScrollView == null)
-            {
-                m_luaDiffScrollView = new LuaDiffScrollView();
-            }
-        }
-#endif
-
         void OnGUI()
         {
             EditorGUILayout.BeginVertical();
@@ -111,31 +136,6 @@ namespace MikuLuaProfiler
             GUILayout.EndVertical();
 #endregion
 
-#region diff
-            GUILayout.BeginVertical("Box");
-            GUILayout.Space(5);
-            GUILayout.BeginHorizontal();
-#if (UNITY_5 || UNITY_2017_1_OR_NEWER)
-            if (GUILayout.Button("MarkLuaRecord", GUILayout.Height(30)))
-            {
-                m_luaDiffScrollView.DelDiffInfo(LuaHook.Record());
-                m_luaDiffScrollView.MarkIsRecord();
-            }
-            if (GUILayout.Button("DiffRecord", GUILayout.Height(30)))
-            {
-                m_luaDiffScrollView.DelDiffInfo(LuaHook.Diff());
-            }
-            if (GUILayout.Button("ClearDiff", GUILayout.Height(30)))
-            {
-                m_luaDiffScrollView.Clear();
-            }
-            GUILayout.EndHorizontal();
-
-            m_luaDiffScrollView.DoRefScroll();
-#endif
-            GUILayout.EndVertical();
-#endregion
-
 #region capture
             /*
             GUILayout.Space(10);
@@ -183,15 +183,16 @@ namespace MikuLuaProfiler
         }
 
         // Add menu named "My Window" to the Window menu
-        [MenuItem("Window/Lua Profiler Window")]
+        [MenuItem("Window/Lua Profiler Setting")]
         static public void ShowWindow()
         {
             //InjectMethods.ChangeAttribute();
             // Get existing open window or if none, make a new one:
 
-            var window = GetWindow<LuaProfilerWindowProfiler>();
+            var window = GetWindow<LuaProfilerSettingWindow>();
             window.titleContent = new GUIContent("Lua Profiler");
             window.Show();
         }
     }
 }
+#endif
