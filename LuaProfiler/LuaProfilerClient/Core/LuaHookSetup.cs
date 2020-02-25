@@ -879,7 +879,7 @@ function miku_do_record(val, prefix, key, record, history, null_list)
         end
 
     elseif typeStr == 'function' then
-        if val ~= lua_miku_add_ref_fun_info and val ~= lua_miku_rm_ref_fun_info then
+        if val ~= lua_miku_add_ref_fun_info and val ~= lua_miku_remove_ref_fun_info then
             local i = 1
             while true do
                 local k, v = debug.getupvalue(val, i)
