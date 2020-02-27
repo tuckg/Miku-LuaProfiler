@@ -116,6 +116,11 @@ namespace MikuLuaProfiler
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
 #if (UNITY_5 || UNITY_2017_1_OR_NEWER)
+            if (GUILayout.Button("MarkStaticRecord", GUILayout.Height(30)))
+            {
+                m_luaDiffScrollView.DelDiffInfo(LuaHook.RecordStatic());
+                m_luaDiffScrollView.MarkIsStaticRecord();
+            }
             if (GUILayout.Button("MarkLuaRecord", GUILayout.Height(30)))
             {
                 m_luaDiffScrollView.DelDiffInfo(LuaHook.Record());

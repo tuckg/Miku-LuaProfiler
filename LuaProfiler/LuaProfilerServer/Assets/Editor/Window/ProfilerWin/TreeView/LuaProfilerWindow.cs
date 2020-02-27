@@ -384,6 +384,11 @@ namespace MikuLuaProfiler
                 }
 
                 GUILayout.Space(25);
+                if (GUILayout.Button("MarkStaticRecord", EditorStyles.toolbarButton, GUILayout.Height(30)))
+                {
+                    NetWorkServer.SendCmd(3);
+                    m_luaDiffScrollView.MarkIsStaticRecord();
+                }
                 if (GUILayout.Button("MarkLuaRecord", EditorStyles.toolbarButton, GUILayout.Height(30)))
                 {
                     NetWorkServer.SendCmd(1);

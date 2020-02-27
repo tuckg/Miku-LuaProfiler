@@ -82,7 +82,7 @@ namespace MikuLuaProfiler
             if (isInite) return;
 
             isInite = true;
-            setting = LuaDeepProfilerSetting.MakeInstance();
+            setting = LuaDeepProfilerSetting.Instance;
             LuaProfiler.mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
             if (setting.isNeedCapture)
             {
@@ -301,6 +301,72 @@ namespace MikuLuaProfiler
         }
 
         #region check
+        public static int staticHistoryRef = -100;
+        public static LuaDiffInfo RecordStatic()
+        {
+            IntPtr L = LuaProfiler.mainL;
+            if (L == IntPtr.Zero)
+            {
+                return null;
+            }
+            isHook = false;
+
+            ClearStaticRecord();
+            Resources.UnloadUnusedAssets();
+            // 调用C# LuaTable LuaFunction WeakTable的析构 来清理掉lua的 ref
+            GC.Collect();
+            // 清理掉C#强ref后，顺便清理掉很多弱引用
+            LuaDLL.lua_gc(L, LuaGCOptions.LUA_GCCOLLECT, 0);
+
+            int oldTop = LuaDLL.lua_gettop(L);
+            LuaDLL.lua_getglobal(L, "miku_handle_error");
+
+            LuaDLL.lua_getglobal(L, "miku_do_record");
+            LuaDLL.lua_getglobal(L, "_G");
+            LuaDLL.lua_pushstring(L, "");
+            LuaDLL.lua_pushstring(L, "_G");
+            //recrod
+            LuaDLL.lua_newtable(L);
+            staticHistoryRef = LuaDLL.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
+            LuaDLL.lua_getref(L, staticHistoryRef);
+            //history
+            LuaDLL.lua_pushnil(L);
+            //null_list
+            LuaDLL.lua_newtable(L);
+            LuaDLL.lua_pushvalue(L, -1);
+            int nullObjectRef = LuaDLL.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
+            if (LuaDLL.lua_pcall(L, 6, 0, oldTop + 1) == 0)
+            {
+                LuaDLL.lua_remove(L, oldTop + 1);
+            }
+            LuaDLL.lua_settop(L, oldTop);
+
+            oldTop = LuaDLL.lua_gettop(L);
+            LuaDLL.lua_getglobal(L, "miku_handle_error");
+
+            LuaDLL.lua_getglobal(L, "miku_do_record");
+            LuaDLL.lua_pushvalue(L, LuaIndexes.LUA_REGISTRYINDEX);
+            LuaDLL.lua_pushstring(L, "");
+            LuaDLL.lua_pushstring(L, "_R");
+            LuaDLL.lua_getref(L, staticHistoryRef);
+            //history
+            LuaDLL.lua_pushnil(L);
+            //null_list
+            LuaDLL.lua_getref(L, nullObjectRef);
+
+            if (LuaDLL.lua_pcall(L, 6, 0, oldTop + 1) == 0)
+            {
+                LuaDLL.lua_remove(L, oldTop + 1);
+            }
+            LuaDLL.lua_settop(L, oldTop);
+
+            LuaDiffInfo ld = LuaDiffInfo.Create();
+            SetTable(nullObjectRef, ld.nullRef, ld.nullDetail);
+
+            isHook = true;
+            return ld;
+        }
+
         public static int historyRef = -100;
         public static LuaDiffInfo Record()
         {
@@ -335,7 +401,8 @@ namespace MikuLuaProfiler
             LuaDLL.lua_newtable(L);
             LuaDLL.lua_pushvalue(L, -1);
             int nullObjectRef = LuaDLL.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
-            if (LuaDLL.lua_pcall(L, 6, 0, oldTop + 1) == 0)
+            LuaDLL.lua_getref(L, staticHistoryRef);
+            if (LuaDLL.lua_pcall(L, 7, 0, oldTop + 1) == 0)
             {
                 LuaDLL.lua_remove(L, oldTop + 1);
             }
@@ -353,8 +420,8 @@ namespace MikuLuaProfiler
             LuaDLL.lua_pushnil(L);
             //null_list
             LuaDLL.lua_getref(L, nullObjectRef);
-
-            if (LuaDLL.lua_pcall(L, 6, 0, oldTop + 1) == 0)
+            LuaDLL.lua_getref(L, staticHistoryRef);
+            if (LuaDLL.lua_pcall(L, 7, 0, oldTop + 1) == 0)
             {
                 LuaDLL.lua_remove(L, oldTop + 1);
             }
@@ -366,7 +433,22 @@ namespace MikuLuaProfiler
             isHook = true;
             return ld;
         }
-        private static void ClearRecord()
+
+        public static void ClearStaticRecord()
+        {
+            IntPtr L = LuaProfiler.mainL;
+            if (L == IntPtr.Zero)
+            {
+                return;
+            }
+            if (staticHistoryRef != -100)
+            {
+                LuaDLL.lua_unref(L, staticHistoryRef);
+                staticHistoryRef = -100;
+            }
+        }
+
+        public static void ClearRecord()
         {
             IntPtr L = LuaProfiler.mainL;
             if (L == IntPtr.Zero)
@@ -379,7 +461,7 @@ namespace MikuLuaProfiler
                 historyRef = -100;
             }
         }
-        private static void SetTable(int refIndex, Dictionary<string, LuaTypes> dict, Dictionary<string, List<string>> detailDict)
+        private static void SetTable(int refIndex, Dictionary<LuaTypes, HashSet<string>> dict, Dictionary<string, List<string>> detailDict)
         {
             IntPtr L = LuaProfiler.mainL;
             if (L == IntPtr.Zero)
@@ -417,7 +499,17 @@ namespace MikuLuaProfiler
                 LuaDLL.lua_settop(L, key_t);
                 if (!string.IsNullOrEmpty(firstKey))
                 {
-                    dict[firstKey] = (LuaTypes)LuaDLL.lua_type(L, -2);
+                    HashSet<string> list;
+                    LuaTypes luaType = (LuaTypes)LuaDLL.lua_type(L, -2);
+                    if (!dict.TryGetValue(luaType, out list))
+                    {
+                        list = new HashSet<string>();
+                        dict.Add(luaType, list);
+                    }
+                    if (!list.Contains(firstKey))
+                    {
+                        list.Add(firstKey);
+                    }
                     detailDict[firstKey] = detailList;
                 }
 
@@ -430,6 +522,16 @@ namespace MikuLuaProfiler
         public static void DiffServer()
         {
             NetWorkClient.SendMessage(Diff());
+        }
+
+        public static void MarkRecordServer()
+        {
+            NetWorkClient.SendMessage(Record());
+        }
+
+        public static void MarkStaticServer()
+        {
+            NetWorkClient.SendMessage(Record());
         }
 
         public static LuaDiffInfo Diff()
@@ -445,6 +547,14 @@ namespace MikuLuaProfiler
             GC.Collect();
             // 清理掉C#强ref后，顺便清理掉很多弱引用
             LuaDLL.lua_gc(L, LuaGCOptions.LUA_GCCOLLECT, 0);
+
+
+            if (staticHistoryRef == -100)
+            {
+                Debug.LogError("has no history");
+                return null;
+            }
+
             if (historyRef == -100)
             {
                 Debug.LogError("has no history");
@@ -456,15 +566,18 @@ namespace MikuLuaProfiler
 
             LuaDLL.lua_getglobal(L, "miku_diff");
             LuaDLL.lua_getref(L, historyRef);
-            if (LuaDLL.lua_type(L, -1) != LuaTypes.LUA_TTABLE)
+            LuaDLL.lua_getref(L, staticHistoryRef);
+            if (LuaDLL.lua_type(L, -1) != LuaTypes.LUA_TTABLE &&
+                LuaDLL.lua_type(L, -2) != LuaTypes.LUA_TTABLE)
             {
                 Debug.LogError(LuaDLL.lua_type(L, -1));
                 LuaDLL.lua_settop(L, oldTop);
                 historyRef = -100;
+                staticHistoryRef = -100;
                 return null;
             }
 
-            if (LuaDLL.lua_pcall(L, 1, 3, oldTop + 1) == 0)
+            if (LuaDLL.lua_pcall(L, 2, 3, oldTop + 1) == 0)
             {
                 LuaDLL.lua_remove(L, oldTop + 1);
             }
@@ -654,7 +767,7 @@ namespace MikuLuaProfiler
             LuaLib.DoString(L, diff_script);
         }
 
-#region script
+        #region script
         const string get_ref_string = @"
 local weak_meta_table = {__mode = 'k'}
 local infoTb = {}
@@ -662,7 +775,7 @@ local funAddrTb = {}
 setmetatable(infoTb, weak_meta_table)
 setmetatable(funAddrTb, weak_meta_table)
 
-local function miku_get_fun_info(fun)
+function miku_get_fun_info(fun)
     local result = infoTb[fun]
     local addr = funAddrTb[fun]
     if not result then
@@ -683,7 +796,7 @@ local function serialize(obj)
     lua = lua .. '{\n'
     local count = 0
     for k, v in pairs(obj) do
-        lua = lua .. '[' .. tostring(k) .. ']=' .. tostring(v) .. ',\n'
+        lua = lua .. '[' .. tostring(tostring(k)) .. ']=' .. tostring(tostring(v)) .. ',\n'
         count = count + 1
         if count > 5 then
             break
@@ -771,7 +884,10 @@ local weak_meta_value_table = {__mode = 'v'}
 local infoTb = {}
 local cache_key = 'miku_record_prefix_cache'
 
-function miku_do_record(val, prefix, key, record, history, null_list)
+function miku_do_record(val, prefix, key, record, history, null_list, staticRecord)
+    if val == staticRecord then
+        return
+    end
     if val == infoTb then
         return
     end
@@ -785,6 +901,15 @@ function miku_do_record(val, prefix, key, record, history, null_list)
         return
     end
     if val == lua_miku_add_ref_fun_info then
+        return
+    end
+    if val == history then
+        return
+    end
+    if val == record then
+        return
+    end
+    if val == miku_get_fun_info then
         return
     end
 
@@ -806,6 +931,7 @@ function miku_do_record(val, prefix, key, record, history, null_list)
         if isEmpty then return end
     end
 
+    local tmp_prefix
     local strKey = tostring(key)
     if not strKey then
         strKey = 'empty'
@@ -815,7 +941,7 @@ function miku_do_record(val, prefix, key, record, history, null_list)
         prefixTb = {}
         infoTb[prefix] = prefixTb
     end
-    local tmp_prefix = prefixTb[strKey]
+    tmp_prefix = prefixTb[strKey]
     if not tmp_prefix then
         tmp_prefix = prefix.. (prefix == '' and '' or '.') .. strKey
         prefixTb[strKey] = tmp_prefix
@@ -834,16 +960,7 @@ function miku_do_record(val, prefix, key, record, history, null_list)
     end
 
     if record[val] then
-        if record[val] == nil then
-            record[val] = {}
-        end
         table.insert(record[val], tmp_prefix)
-        return
-    end
-    if val == history then
-        return
-    end
-    if val == record then
         return
     end
 
@@ -854,17 +971,29 @@ function miku_do_record(val, prefix, key, record, history, null_list)
         end
         prefix_cache = record[cache_key]
         prefix_cache[tmp_prefix] = tmp_prefix
-        if record[val] == nil then
-            record[val] = {}
+        local record_val = record[val]
+        if record_val == nil then
+            record_val = {}
+            if typeStr == 'function' then
+                local funInfo = miku_get_fun_info(val)
+                table.insert(record_val, funInfo)
+            end
+            record[val] = record_val
         end
-        table.insert(record[val], tmp_prefix)
+        table.insert(record_val, tmp_prefix)
     else
         prefix_cache = history[cache_key]
         if prefix_cache[tmp_prefix] == nil or history[val] then
-            if record[val] == nil then
-                record[val] = { }
+            local record_val = record[val]
+            if record_val == nil then
+                record_val = {}
+                if typeStr == 'function' then
+                    local funInfo = miku_get_fun_info(val)
+                    table.insert(record_val, funInfo)
+                end
+                record[val] = record_val
             end
-            table.insert(record[val], tmp_prefix)
+            table.insert(record_val, tmp_prefix)
         end
     end
 
@@ -872,9 +1001,9 @@ function miku_do_record(val, prefix, key, record, history, null_list)
         for k,v in pairs(val) do
             local typeKStr = type(k)
             if typeKStr == 'table' or typeKStr == 'userdata' or typeKStr == 'function' then
-                miku_do_record(k, tmp_prefix, v, record, history, null_list)
+                miku_do_record(k, tmp_prefix, v, record, history, null_list, staticRecord)
             else
-                miku_do_record(v, tmp_prefix, k, record, history, null_list)
+                miku_do_record(v, tmp_prefix, k, record, history, null_list, staticRecord)
             end
         end
 
@@ -887,7 +1016,8 @@ function miku_do_record(val, prefix, key, record, history, null_list)
                     break
                 end
                 if v then
-                    miku_do_record(v, tmp_prefix, k, record, history, null_list)
+                    local funPrefix = miku_get_fun_info(val)
+                    miku_do_record(v, funPrefix, k, record, history, null_list, staticRecord)
                 end
                 i = i + 1
             end
@@ -896,34 +1026,39 @@ function miku_do_record(val, prefix, key, record, history, null_list)
 
     local metaTable = getmetatable(val)
     if metaTable then
-        miku_do_record(metaTable, tmp_prefix, 'metaTable', record, history, null_list)
+        miku_do_record(metaTable, tmp_prefix, 'metaTable', record, history, null_list, staticRecord)
     end
     metaTable = getmetatable(key)
     if metaTable then
-        miku_do_record(metaTable, tmp_prefix, 'metaTable', record, history, null_list)
+        miku_do_record(metaTable, tmp_prefix, 'metaTable', record, history, null_list, staticRecord)
     end
 end
 
-function miku_diff(record)
+-- staticRecord为打开UI前的快照， record为打开UI后的快照，add为关闭并释放UI后的快照
+function miku_diff(record, staticRecord)
     local add = { }
     setmetatable(add, weak_meta_key_table)
     local null_list = { }
     setmetatable(null_list, weak_meta_key_table)
-    miku_do_record(_G, '', '_G', add, record, null_list)
-    miku_do_record(debug.getregistry(), '', '_R', add, record, null_list)
-    local rm = { }
+    miku_do_record(_G, '', '_G', add, record, null_list, staticRecord)
+    miku_do_record(debug.getregistry(), '', '_R', add, record, null_list, staticRecord)
+    local remain = { }
 
     for key, val in pairs(record) do
         if not add[key] and key ~= cache_key then
-            rm[key] = val
         else
+            -- 如果打开UI前的快照没有这个数据
+            -- 但是打开UI后及关闭并释放UI后的快照都拥有这个数据，视为泄漏
+            if not staticRecord[key] and key ~= staticRecord and key ~= cache_key  then
+                remain[key] = val
+            end
             add[key] = nil
         end
     end
 
-    return add,rm,null_list
+    return add,remain,null_list
 end";
-#endregion
+        #endregion
 
         [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
         static int BeginSample(IntPtr L)
