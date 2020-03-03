@@ -80,7 +80,7 @@ namespace MikuLuaProfiler
             if (!Application.isPlaying) return;
 #endif
             if (isInite) return;
-
+            LuaDeepProfilerSetting.MakeInstance();
             isInite = true;
             setting = LuaDeepProfilerSetting.Instance;
             LuaProfiler.mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
