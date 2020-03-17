@@ -206,6 +206,22 @@ namespace MikuLuaProfiler
         public static extern int lua_gc(IntPtr luaState, LuaGCOptions what, int data);              //[-0, +0, e]
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern int lua_next(IntPtr luaState, int index);                              //[-1, +(2|0), e]        
+
+        public static int lua_getobjlen(IntPtr luaState, int stackPos)
+        {
+#if XLUA
+            return (int)xlua_objlen(luaState, stackPos);
+#else
+            return lua_objlen(luaState, stackPos);
+#endif
+        }
+#if XLUA
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint xlua_objlen(IntPtr L, int stackPos);
+#else
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int lua_objlen(IntPtr luaState, int stackPos);
+#endif
         public static void lua_pop(IntPtr luaState, int amount)
         {
             LuaDLL.lua_settop(luaState, -(amount) - 1);
