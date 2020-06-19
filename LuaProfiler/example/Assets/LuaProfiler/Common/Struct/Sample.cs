@@ -34,14 +34,14 @@ __________#_______####_______####______________
 */
 
 #if UNITY_EDITOR_WIN || USE_LUA_PROFILER
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using UnityEngine;
 
 namespace MikuLuaProfiler
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using UnityEngine;
     public enum LuaTypes
     {
         LUA_TNONE = -1,
