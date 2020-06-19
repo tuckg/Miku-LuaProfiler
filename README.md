@@ -8,7 +8,7 @@
 直接将example下的LuaProfiler文件夹拷贝到工程目录下。
 
 ### 使用说明
-在Windows菜单下也有个LuaProfiler选项，点击后即可打开窗口。开启DeepLua,运行游戏就能看到对应的数据。
+在Windows菜单下会出现LuaProfilerWindow选项，点击后即可打开窗口。开启DeepLua,运行游戏就能看到对应的数据。
 
 ### FAQ
 运行起来提示找不到EasyHook64.dll
@@ -45,7 +45,4 @@ Precompile Lua：有的人实在跑不起来我这套东西，你可以用Tools�
 目前暂时放弃了真机调试，想真机调试的可以去master版本试试看，xlua的项目没有什么大问题
 
 <span id="contact_zh"></span>
-### [联系](#zh)
-如果您发现任何错误或有任何建议加入QQ群：[882425563](https://jq.qq.com/?_wv=1027&k=5QkOBSc) 与我们联系
-##
 ![](doc/meizi.gif)
