@@ -546,10 +546,11 @@ end
                 UnityEngine.Debug.Log("no version");
                 return;
             }
+            UnityEngine.Debug.Log("lua moduleName:" + moduleName);
             UnityEngine.Debug.Log("lua versin:" + LUA_VERSION);
             if (luaL_newstate_hook == null)
             {
-                IntPtr handle = GetProcAddress(moduleName, "luaL_newstate");
+                IntPtr handle = GetProcAddress(moduleName, "luaL_newstatealloc");
                 luaL_newstate = (luaL_newstate_fun)Marshal.GetDelegateForFunctionPointer(handle, typeof(luaL_newstate_fun));
 
                 luaL_newstate_fun luaFun = new luaL_newstate_fun(luaL_newstate_replace);
@@ -989,10 +990,16 @@ end
             foreach (ProcessModule item in modules)
             {
                 string moduleName = item.ModuleName;
-                if (GetProcAddress(moduleName, "luaL_newstate") != IntPtr.Zero)
+
+                if (String.Equals(moduleName, "sluad.dll", StringComparison.OrdinalIgnoreCase))
                 {
                     result = moduleName;
                     break;
+                }
+
+                if (GetProcAddress(moduleName, "luaL_newstate") != IntPtr.Zero)
+                {
+                    result = moduleName;
                 }
             }
             return result;
@@ -1223,8 +1230,8 @@ end
         #endregion
 
 
-        }
     }
+}
 #endif
       
       
